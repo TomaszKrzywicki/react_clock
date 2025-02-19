@@ -1,40 +1,83 @@
-import React, { useState, useEffect } from 'react';
+import React, { Component } from 'react';
 import './App.scss';
 
 function getRandomName(): string {
   return `Clock-${Date.now().toString().slice(-4)}`;
 }
 
-export const App: React.FC = () => {
-  const [clockName, setClockName] = useState('Clock-0');
-  const [time, setTime] = useState(new Date().toUTCString().slice(-12, -4));
+interface State {
+  clockName: string;
+  time: string;
+  hasClock: boolean;
+}
 
-  useEffect(() => {
-    const timerId = setInterval(() => {
-      setTime(new Date().toUTCString().slice(-12, -4));
+export class App extends Component<{}, State> {
+  private timerId: NodeJS.Timeout | null = null;
+
+  private nameIntervalId: NodeJS.Timeout | null = null;
+
+  state: State = {
+    clockName: 'Clock-0',
+    time: new Date().toUTCString().slice(-12, -4),
+    hasClock: true,
+  };
+
+  componentDidMount() {
+    this.startTimers();
+    window.addEventListener('click', this.toggleClockVisibility);
+  }
+
+  componentWillUnmount() {
+    this.clearTimers();
+    window.removeEventListener('click', this.toggleClockVisibility);
+  }
+
+  startTimers() {
+    this.timerId = setInterval(() => {
+      if (this.state.hasClock) {
+        this.setState({ time: new Date().toUTCString().slice(-12, -4) });
+        // Remove console.log or disable the ESLint rule if needed:
+        // console.log(this.state.time);
+      }
     }, 1000);
 
-    const nameIntervalId = setInterval(() => {
-      setClockName(getRandomName());
+    this.nameIntervalId = setInterval(() => {
+      const newName = getRandomName();
+
+      this.setState({ clockName: newName });
+      // Remove console.warn or disable the ESLint rule if needed:
+      // console.warn(`Clock name updated: ${newName}`);
     }, 3300);
+  }
 
-    return () => {
-      clearInterval(timerId);
-      clearInterval(nameIntervalId);
-    };
-  }, []);
+  clearTimers() {
+    if (this.timerId) {
+      clearInterval(this.timerId);
+    }
 
-  return (
-    <div className="App">
-      <h1>React clock</h1>
+    if (this.nameIntervalId) {
+      clearInterval(this.nameIntervalId);
+    }
+  }
 
-      <div className="Clock">
-        <strong className="Clock__name">{clockName}</strong>
+  toggleClockVisibility = () => {
+    this.setState(prevState => ({ hasClock: !prevState.hasClock }));
+  };
 
-        {' time is '}
+  render() {
+    const { clockName, time, hasClock } = this.state;
 
-        <span className="Clock__time">{time}</span>
+    return (
+      <div className="App">
+        <h1>React clock</h1>
+        {hasClock && (
+          <div className="Clock">
+            <strong className="Clock__name">{clockName}</strong>
+            {' time is '}
+            <span className="Clock__time">{time}</span>
+          </div>
+        )}
       </div>
-    </div>
-  );
-};
+    );
+  }
+}
